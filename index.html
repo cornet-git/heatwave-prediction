@@ -730,18 +730,30 @@
     // ─────────────────────────────────────────────
     async function fetchWeather(city) {
       const encoded = encodeURIComponent(city.trim());
-      const url     = `${API_BASE}/current-weather/${encoded}`;
-
-      const resp = await fetch(url);
+      // Prefer /api/current-weather (standard Vercel serverless path) with fallback
+      let resp = await fetch(`${API_BASE}/api/current-weather/${encoded}`);
+      if (resp.status === 404) {
+        const fallbackResp = await fetch(`${API_BASE}/current-weather/${encoded}`);
+        if (fallbackResp.ok) {
+          resp = fallbackResp;
+        }
+      }
 
       if (!resp.ok) {
         let detail = `Server returned ${resp.status}`;
+        let errType = '';
         try {
           const body = await resp.json();
           detail = body.detail || detail;
+          errType = body.error_type || '';
         } catch (_) { /* ignore */ }
 
-        if (resp.status === 404) throw new Error(`City not found: "${city}". Check the spelling and try again.`);
+        if (resp.status === 404) {
+          if (errType === 'city_not_found') {
+            throw new Error(`City not found: "${city}". Check the spelling and try again.`);
+          }
+          throw new Error('API route not reachable (404). Please ensure server is running.');
+        }
         if (resp.status === 422) throw new Error(`Invalid input: ${detail}`);
         if (resp.status === 502) throw new Error('Could not reach the weather data provider. Please try again shortly.');
         if (resp.status === 503) throw new Error('The prediction model is not ready. Run `python main.py` first.');
