@@ -1,0 +1,52 @@
+{
+  "description": "Input schema for the heatwave risk prediction model. Supply one record per day per city.",
+  "model_type": "RandomForestClassifier",
+  "label_classes": [
+    "Low",
+    "Moderate",
+    "High"
+  ],
+  "features": [
+    {
+      "name": "temperature_2m_max",
+      "type": "float",
+      "unit": "\u00b0C",
+      "description": "Maximum air temperature at 2 m above ground."
+    },
+    {
+      "name": "relative_humidity_2m_max",
+      "type": "float",
+      "unit": "%",
+      "description": "Maximum relative humidity at 2 m above ground."
+    },
+    {
+      "name": "wind_speed_10m_max",
+      "type": "float",
+      "unit": "km/h",
+      "description": "Maximum wind speed at 10 m above ground."
+    },
+    {
+      "name": "rolling_max_temp_3d",
+      "type": "float",
+      "unit": "\u00b0C",
+      "description": "3-day rolling mean of temperature_2m_max (computed per city; requires at least 3 prior days)."
+    }
+  ],
+  "training_stats": {
+    "n_estimators": 200,
+    "test_size_fraction": 0.2,
+    "class_weight": "balanced",
+    "feature_order": [
+      "temperature_2m_max",
+      "relative_humidity_2m_max",
+      "wind_speed_10m_max",
+      "rolling_max_temp_3d"
+    ],
+    "train_samples": 2920,
+    "label_distribution": {
+      "Low": 3174,
+      "Moderate": 440,
+      "High": 36
+    }
+  }
+}

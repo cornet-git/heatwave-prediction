@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "functions": {
+    "api/index.py": {
+      "includeFiles": "models/**"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/(predict|current-weather/.*|health|docs|openapi.json|redoc)",
+      "destination": "/api/index.py"
+    }
+  ]
+}

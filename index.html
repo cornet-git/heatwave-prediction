@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Climate Intelligence — real-time heatwave risk prediction for any city, powered by machine learning." />
+  <title>HeatWatch — Heatwave Risk Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ═══════════════════════════════════════════
+       DESIGN TOKENS
+    ═══════════════════════════════════════════ */
+    :root {
+      --bg-page:       #0d1117;
+      --bg-card:       #161b22;
+      --bg-card-inner: #1c2230;
+      --border:        rgba(255,255,255,0.08);
+      --border-focus:  rgba(99,179,237,0.6);
+
+      --text-primary:  #e6edf3;
+      --text-secondary:#8b949e;
+      --text-muted:    #484f58;
+
+      --accent:        #3b82f6;
+      --accent-hover:  #2563eb;
+      --accent-glow:   rgba(59,130,246,0.25);
+
+      --low-bg:        rgba(16,185,129,0.12);
+      --low-border:    rgba(16,185,129,0.45);
+      --low-text:      #34d399;
+      --low-icon:      #10b981;
+
+      --mod-bg:        rgba(251,191,36,0.12);
+      --mod-border:    rgba(251,191,36,0.45);
+      --mod-text:      #fcd34d;
+      --mod-icon:      #f59e0b;
+
+      --high-bg:       rgba(239,68,68,0.12);
+      --high-border:   rgba(239,68,68,0.45);
+      --high-text:     #f87171;
+      --high-icon:     #ef4444;
+
+      --err-bg:        rgba(239,68,68,0.10);
+      --err-border:    rgba(239,68,68,0.35);
+      --err-text:      #fca5a5;
+
+      --radius-sm:  10px;
+      --radius-md:  16px;
+      --radius-lg:  24px;
+      --shadow-card: 0 8px 32px rgba(0,0,0,0.4);
+      --transition:  all 0.25s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    /* ═══════════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-page);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px 64px;
+      line-height: 1.6;
+      /* subtle animated gradient background */
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(59,130,246,0.12), transparent),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(99,102,241,0.08), transparent);
+    }
+
+    /* ═══════════════════════════════════════════
+       HEADER
+    ═══════════════════════════════════════════ */
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      animation: fadeDown 0.5s ease both;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 4px 16px rgba(239,68,68,0.3);
+    }
+
+    .logo-text {
+      font-size: 1.75rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #f59e0b 30%, #ef4444);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
+    }
+
+    .tagline {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      font-weight: 400;
+      max-width: 380px;
+      margin: 0 auto;
+    }
+
+    /* ═══════════════════════════════════════════
+       MAIN CARD
+    ═══════════════════════════════════════════ */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+      width: 100%;
+      max-width: 520px;
+      padding: 32px;
+      animation: fadeUp 0.5s ease 0.1s both;
+    }
+
+    /* ═══════════════════════════════════════════
+       SEARCH FORM
+    ═══════════════════════════════════════════ */
+    .search-label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .search-input {
+      flex: 1;
+      background: var(--bg-card-inner);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 1rem;
+      padding: 12px 16px;
+      outline: none;
+      transition: var(--transition);
+      min-width: 0;
+    }
+
+    .search-input::placeholder { color: var(--text-muted); }
+
+    .search-input:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .btn-check {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 12px 22px;
+      cursor: pointer;
+      transition: var(--transition);
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .btn-check:hover:not(:disabled) {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+
+    .btn-check:active:not(:disabled) { transform: translateY(0); }
+
+    .btn-check:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* ═══════════════════════════════════════════
+       LOADING SPINNER
+    ═══════════════════════════════════════════ */
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* ═══════════════════════════════════════════
+       DIVIDER
+    ═══════════════════════════════════════════ */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 28px 0;
+    }
+
+    /* ═══════════════════════════════════════════
+       ERROR STATE
+    ═══════════════════════════════════════════ */
+    .error-box {
+      background: var(--err-bg);
+      border: 1px solid var(--err-border);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      animation: fadeUp 0.3s ease both;
+    }
+
+    .error-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+
+    .error-msg {
+      font-size: 0.9rem;
+      color: var(--err-text);
+      line-height: 1.5;
+    }
+
+    /* ═══════════════════════════════════════════
+       RISK BANNER
+    ═══════════════════════════════════════════ */
+    .risk-banner {
+      border-radius: var(--radius-sm);
+      padding: 20px 22px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      animation: scaleIn 0.35s cubic-bezier(0.34,1.56,0.64,1) both;
+      margin-bottom: 24px;
+    }
+
+    .risk-banner.low  { background: var(--low-bg);  border: 1px solid var(--low-border); }
+    .risk-banner.mod  { background: var(--mod-bg);  border: 1px solid var(--mod-border); }
+    .risk-banner.high { background: var(--high-bg); border: 1px solid var(--high-border); }
+
+    .risk-emoji { font-size: 2rem; flex-shrink: 0; }
+
+    .risk-details { flex: 1; }
+
+    .risk-label-sm {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      opacity: 0.7;
+    }
+
+    .risk-banner.low  .risk-label-sm { color: var(--low-text); }
+    .risk-banner.mod  .risk-label-sm { color: var(--mod-text); }
+    .risk-banner.high .risk-label-sm { color: var(--high-text); }
+
+    .risk-level {
+      font-size: 1.5rem;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-top: 2px;
+    }
+
+    .risk-banner.low  .risk-level { color: var(--low-text); }
+    .risk-banner.mod  .risk-level { color: var(--mod-text); }
+    .risk-banner.high .risk-level { color: var(--high-text); }
+
+    .risk-conf {
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    /* ═══════════════════════════════════════════
+       WEATHER STATS GRID
+    ═══════════════════════════════════════════ */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      animation: fadeUp 0.4s ease 0.1s both;
+    }
+
+    .stat-card {
+      background: var(--bg-card-inner);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px 14px;
+      text-align: center;
+      transition: var(--transition);
+    }
+
+    .stat-card:hover {
+      border-color: rgba(255,255,255,0.15);
+      transform: translateY(-2px);
+    }
+
+    .stat-icon { font-size: 1.3rem; margin-bottom: 6px; }
+
+    .stat-value {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+
+    .stat-unit {
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      vertical-align: super;
+      margin-left: 1px;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* ═══════════════════════════════════════════
+       META ROW (city name + date)
+    ═══════════════════════════════════════════ */
+    .meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      animation: fadeUp 0.35s ease both;
+    }
+
+    .meta-city {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .meta-date {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      background: var(--bg-card-inner);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+    }
+
+    /* rolling avg row */
+    .rolling-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: var(--bg-card-inner);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      animation: fadeUp 0.45s ease 0.15s both;
+    }
+
+    .rolling-row span.val {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* ═══════════════════════════════════════════
+       EMPTY / PLACEHOLDER STATE
+    ═══════════════════════════════════════════ */
+    .placeholder {
+      text-align: center;
+      padding: 24px 0 8px;
+      animation: fadeIn 0.4s ease both;
+    }
+
+    .placeholder-icon {
+      font-size: 2.8rem;
+      margin-bottom: 10px;
+      opacity: 0.35;
+    }
+
+    .placeholder-text {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    /* ═══════════════════════════════════════════
+       FOOTER
+    ═══════════════════════════════════════════ */
+    .footer {
+      margin-top: 32px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      text-align: center;
+      animation: fadeUp 0.5s ease 0.2s both;
+    }
+
+    .footer a {
+      color: var(--text-secondary);
+      text-decoration: none;
+    }
+
+    .footer a:hover { color: var(--text-primary); }
+
+    /* ═══════════════════════════════════════════
+       UTILITY / VISIBILITY
+    ═══════════════════════════════════════════ */
+    .hidden { display: none !important; }
+
+    /* ═══════════════════════════════════════════
+       ANIMATIONS
+    ═══════════════════════════════════════════ */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.94); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ═══════════════════════════════════════════
+       RESPONSIVE
+    ═══════════════════════════════════════════ */
+    @media (max-width: 420px) {
+      .card { padding: 24px 18px; }
+      .search-row { flex-direction: column; }
+      .btn-check { width: 100%; justify-content: center; }
+      .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .stat-card { padding: 12px 8px; }
+      .stat-value { font-size: 1.15rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── HEADER ── -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">🌡</div>
+      <span class="logo-text">HeatWatch</span>
+    </div>
+    <p class="tagline">Real-time heatwave risk prediction powered by machine learning</p>
+  </header>
+
+  <!-- ── MAIN CARD ── -->
+  <main class="card" role="main">
+
+    <!-- Search -->
+    <label class="search-label" for="city-input">Enter City Name</label>
+    <div class="search-row">
+      <input
+        id="city-input"
+        class="search-input"
+        type="text"
+        placeholder="e.g. Mumbai, Pune, Delhi…"
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+        maxlength="80"
+        aria-label="City name"
+      />
+      <button id="check-btn" class="btn-check" aria-label="Check heatwave risk">
+        <span id="btn-label">Check Risk</span>
+      </button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Result area -->
+    <section id="result-area" aria-live="polite" aria-atomic="true">
+
+      <!-- Placeholder (default) -->
+      <div id="state-placeholder" class="placeholder">
+        <div class="placeholder-icon">🌤</div>
+        <p class="placeholder-text">Enter a city name above to get today's<br/>heatwave risk assessment</p>
+      </div>
+
+      <!-- Error state -->
+      <div id="state-error" class="error-box hidden" role="alert">
+        <span class="error-icon">⚠️</span>
+        <p id="error-msg" class="error-msg"></p>
+      </div>
+
+      <!-- Success state -->
+      <div id="state-success" class="hidden">
+
+        <!-- City / date meta row -->
+        <div class="meta-row">
+          <span class="meta-city">
+            <span id="res-flag">📍</span>
+            <span id="res-city">—</span>
+          </span>
+          <span id="res-date" class="meta-date">—</span>
+        </div>
+
+        <!-- Risk banner -->
+        <div id="risk-banner" class="risk-banner" role="status">
+          <span id="risk-emoji" class="risk-emoji">—</span>
+          <div class="risk-details">
+            <div class="risk-label-sm">Heatwave Risk</div>
+            <div id="risk-level" class="risk-level">—</div>
+            <div id="risk-conf" class="risk-conf">—</div>
+          </div>
+        </div>
+
+        <!-- Weather stats -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">🌡</div>
+            <div class="stat-value">
+              <span id="res-temp">—</span><span class="stat-unit">°C</span>
+            </div>
+            <div class="stat-label">Max Temp</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">💧</div>
+            <div class="stat-value">
+              <span id="res-humidity">—</span><span class="stat-unit">%</span>
+            </div>
+            <div class="stat-label">Humidity</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">💨</div>
+            <div class="stat-value">
+              <span id="res-wind">—</span><span class="stat-unit">km/h</span>
+            </div>
+            <div class="stat-label">Wind</div>
+          </div>
+        </div>
+
+        <!-- Rolling average detail -->
+        <div class="rolling-row">
+          📈&nbsp; 3-day rolling avg max temp:&nbsp;
+          <span id="res-rolling" class="val">—</span>&nbsp;°C
+          &nbsp;·&nbsp;
+          Min temp today:&nbsp;
+          <span id="res-min-temp" class="val">—</span>&nbsp;°C
+        </div>
+
+      </div><!-- /state-success -->
+    </section>
+
+  </main>
+
+  <!-- ── FOOTER ── -->
+  <footer class="footer">
+    Weather data: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
+    &nbsp;·&nbsp;
+    Backend: <a id="docs-link" href="http://localhost:8000/docs" target="_blank" rel="noopener">FastAPI</a>
+  </footer>
+
+  <script>
+    // ─────────────────────────────────────────────
+    // CONFIG: Dynamic environment detection
+    // ─────────────────────────────────────────────
+    const isFileProtocol = window.location.protocol === 'file:';
+    const isDevPort      = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
+                           window.location.port !== '' &&
+                           window.location.port !== '8000';
+    // If double-clicked locally (file:) or run on another dev port (e.g. 5500), point to localhost:8000.
+    // When served via FastAPI or deployed to Vercel, use relative paths ('').
+    const API_BASE = (isFileProtocol || isDevPort) ? 'http://localhost:8000' : '';
+
+    // Update documentation link based on environment
+    const docsLink = document.getElementById('docs-link');
+    if (docsLink) {
+      docsLink.href = API_BASE ? `${API_BASE}/docs` : '/docs';
+    }
+
+    // ─────────────────────────────────────────────
+    // DOM refs
+    // ─────────────────────────────────────────────
+    const cityInput       = document.getElementById('city-input');
+    const checkBtn        = document.getElementById('check-btn');
+    const btnLabel        = document.getElementById('btn-label');
+
+    const statePlaceholder = document.getElementById('state-placeholder');
+    const stateError       = document.getElementById('state-error');
+    const stateSuccess     = document.getElementById('state-success');
+    const errorMsg         = document.getElementById('error-msg');
+
+    const resCity         = document.getElementById('res-city');
+    const resFlag         = document.getElementById('res-flag');
+    const resDate         = document.getElementById('res-date');
+    const riskBanner      = document.getElementById('risk-banner');
+    const riskEmoji       = document.getElementById('risk-emoji');
+    const riskLevel       = document.getElementById('risk-level');
+    const riskConf        = document.getElementById('risk-conf');
+    const resTemp         = document.getElementById('res-temp');
+    const resHumidity     = document.getElementById('res-humidity');
+    const resWind         = document.getElementById('res-wind');
+    const resRolling      = document.getElementById('res-rolling');
+    const resMinTemp      = document.getElementById('res-min-temp');
+
+    // ─────────────────────────────────────────────
+    // RISK CONFIG
+    // ─────────────────────────────────────────────
+    const RISK = {
+      Low: {
+        cls:   'low',
+        emoji: '✅',
+        label: 'Low Risk',
+        conf:  (c) => `Confidence: ${(c * 100).toFixed(1)}% — Conditions appear safe`,
+      },
+      Moderate: {
+        cls:   'mod',
+        emoji: '⚠️',
+        label: 'Moderate Risk',
+        conf:  (c) => `Confidence: ${(c * 100).toFixed(1)}% — Stay hydrated, limit exposure`,
+      },
+      High: {
+        cls:   'high',
+        emoji: '🔥',
+        label: 'High Risk',
+        conf:  (c) => `Confidence: ${(c * 100).toFixed(1)}% — Heatwave conditions — take precautions`,
+      },
+    };
+
+    // ─────────────────────────────────────────────
+    // STATE HELPERS
+    // ─────────────────────────────────────────────
+    function showState(name) {
+      statePlaceholder.classList.add('hidden');
+      stateError.classList.add('hidden');
+      stateSuccess.classList.add('hidden');
+      if (name === 'placeholder') statePlaceholder.classList.remove('hidden');
+      if (name === 'error')       stateError.classList.remove('hidden');
+      if (name === 'success')     stateSuccess.classList.remove('hidden');
+    }
+
+    function setLoading(loading) {
+      checkBtn.disabled = loading;
+      if (loading) {
+        btnLabel.innerHTML = '<div class="spinner"></div> Checking…';
+      } else {
+        btnLabel.textContent = 'Check Risk';
+      }
+    }
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      showState('error');
+    }
+
+    // ─────────────────────────────────────────────
+    // DISPLAY RESULT
+    // ─────────────────────────────────────────────
+    function displayResult(data) {
+      const { city, country, weather, prediction } = data;
+      const cfg = RISK[prediction.risk_level] || RISK['Low'];
+
+      // meta
+      resCity.textContent = `${city}${country ? ', ' + country : ''}`;
+      resDate.textContent  = formatDate(weather.date);
+
+      // risk banner — update in-place; restart CSS animation via reflow trick
+      riskBanner.className = `risk-banner ${cfg.cls}`;
+      riskBanner.style.animation = 'none';
+      void riskBanner.offsetWidth;          // force reflow → resets animation
+      riskBanner.style.animation = '';
+
+      riskEmoji.textContent = cfg.emoji;
+      riskLevel.textContent = cfg.label;
+      riskConf.textContent  = cfg.conf(prediction.confidence);
+
+      // weather stats
+      resTemp.textContent     = fmt(weather.temperature_2m_max, 1);
+      resHumidity.textContent = fmt(weather.relative_humidity_2m_max, 0);
+      resWind.textContent     = fmt(weather.wind_speed_10m_max, 1);
+      resRolling.textContent  = fmt(weather.rolling_max_temp_3d, 2);
+      resMinTemp.textContent  = fmt(weather.temperature_2m_min, 1);
+
+      showState('success');
+    }
+
+    // ─────────────────────────────────────────────
+    // FETCH
+    // ─────────────────────────────────────────────
+    async function fetchWeather(city) {
+      const encoded = encodeURIComponent(city.trim());
+      const url     = `${API_BASE}/current-weather/${encoded}`;
+
+      const resp = await fetch(url);
+
+      if (!resp.ok) {
+        let detail = `Server returned ${resp.status}`;
+        try {
+          const body = await resp.json();
+          detail = body.detail || detail;
+        } catch (_) { /* ignore */ }
+
+        if (resp.status === 404) throw new Error(`City not found: "${city}". Check the spelling and try again.`);
+        if (resp.status === 422) throw new Error(`Invalid input: ${detail}`);
+        if (resp.status === 502) throw new Error('Could not reach the weather data provider. Please try again shortly.');
+        if (resp.status === 503) throw new Error('The prediction model is not ready. Run `python main.py` first.');
+        throw new Error(detail);
+      }
+
+      return resp.json();
+    }
+
+    // ─────────────────────────────────────────────
+    // MAIN HANDLER
+    // ─────────────────────────────────────────────
+    async function handleCheck() {
+      const city = cityInput.value.trim();
+
+      if (!city) {
+        cityInput.focus();
+        showError('Please enter a city name.');
+        return;
+      }
+      if (city.length < 2) {
+        showError('City name must be at least 2 characters.');
+        return;
+      }
+
+      setLoading(true);
+      showState('placeholder'); // clear previous result while loading
+
+      try {
+        const data = await fetchWeather(city);
+        displayResult(data);
+      } catch (err) {
+        const msg = err.name === 'TypeError'
+          ? (API_BASE
+              ? `Cannot connect to the backend. Make sure the server is running on ${API_BASE}.`
+              : 'Cannot connect to the backend server. Please check your connection or server status.')
+          : err.message;
+        showError(msg);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    // UTILS
+    // ─────────────────────────────────────────────
+    function fmt(val, decimals) {
+      if (val == null) return '—';
+      return Number(val).toFixed(decimals);
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso + 'T00:00:00');
+      return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    // ─────────────────────────────────────────────
+    // EVENT LISTENERS
+    // ─────────────────────────────────────────────
+    checkBtn.addEventListener('click', handleCheck);
+
+    cityInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleCheck();
+    });
+
+    // Clear error on new input
+    cityInput.addEventListener('input', () => {
+      if (!stateError.classList.contains('hidden')) {
+        showState('placeholder');
+      }
+    });
+  </script>
+
+</body>
+</html>
