@@ -12,5 +12,10 @@ echo   Press Ctrl+C to stop the server.
 echo  =========================================
 echo.
 
-python run_server.py --no-reload
+where py >nul 2>&1
+if %ERRORLEVEL% EQU 0 (
+    py -3.10 run_server.py --no-reload
+) else (
+    python run_server.py --no-reload
+)
 pause

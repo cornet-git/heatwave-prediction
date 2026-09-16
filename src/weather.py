@@ -31,6 +31,32 @@ DAILY_VARIABLES = [
 ]
 
 _REQUEST_TIMEOUT = 15  # seconds
+_HEADERS = {
+    "User-Agent": "HeatWatch-HeatwaveMonitor/1.0 (ClimateIntelligence; https://github.com)"
+}
+
+# Fast-path & offline/fallback coordinates for common cities
+_KNOWN_CITIES: dict[str, dict] = {
+    "mumbai": {"name": "Mumbai", "latitude": 19.0760, "longitude": 72.8777, "country": "India", "timezone": "Asia/Kolkata"},
+    "pune": {"name": "Pune", "latitude": 18.5204, "longitude": 73.8567, "country": "India", "timezone": "Asia/Kolkata"},
+    "delhi": {"name": "Delhi", "latitude": 28.6139, "longitude": 77.2090, "country": "India", "timezone": "Asia/Kolkata"},
+    "new delhi": {"name": "New Delhi", "latitude": 28.6139, "longitude": 77.2090, "country": "India", "timezone": "Asia/Kolkata"},
+    "bengaluru": {"name": "Bengaluru", "latitude": 12.9716, "longitude": 77.5946, "country": "India", "timezone": "Asia/Kolkata"},
+    "bangalore": {"name": "Bengaluru", "latitude": 12.9716, "longitude": 77.5946, "country": "India", "timezone": "Asia/Kolkata"},
+    "hyderabad": {"name": "Hyderabad", "latitude": 17.3850, "longitude": 78.4867, "country": "India", "timezone": "Asia/Kolkata"},
+    "ahmedabad": {"name": "Ahmedabad", "latitude": 23.0225, "longitude": 72.5714, "country": "India", "timezone": "Asia/Kolkata"},
+    "chennai": {"name": "Chennai", "latitude": 13.0827, "longitude": 80.2707, "country": "India", "timezone": "Asia/Kolkata"},
+    "kolkata": {"name": "Kolkata", "latitude": 22.5726, "longitude": 88.3639, "country": "India", "timezone": "Asia/Kolkata"},
+    "surat": {"name": "Surat", "latitude": 21.1702, "longitude": 72.8311, "country": "India", "timezone": "Asia/Kolkata"},
+    "jaipur": {"name": "Jaipur", "latitude": 26.9124, "longitude": 75.7873, "country": "India", "timezone": "Asia/Kolkata"},
+    "lucknow": {"name": "Lucknow", "latitude": 26.8467, "longitude": 80.9462, "country": "India", "timezone": "Asia/Kolkata"},
+    "nagpur": {"name": "Nagpur", "latitude": 21.1458, "longitude": 79.0882, "country": "India", "timezone": "Asia/Kolkata"},
+    "indore": {"name": "Indore", "latitude": 22.7196, "longitude": 75.8577, "country": "India", "timezone": "Asia/Kolkata"},
+    "bhopal": {"name": "Bhopal", "latitude": 23.2599, "longitude": 77.4126, "country": "India", "timezone": "Asia/Kolkata"},
+    "patna": {"name": "Patna", "latitude": 25.5941, "longitude": 85.1376, "country": "India", "timezone": "Asia/Kolkata"},
+    "vadodara": {"name": "Vadodara", "latitude": 22.3072, "longitude": 73.1812, "country": "India", "timezone": "Asia/Kolkata"},
+    "nashik": {"name": "Nashik", "latitude": 19.9975, "longitude": 73.7898, "country": "India", "timezone": "Asia/Kolkata"},
+}
 
 
 # ---------------------------------------------------------------------------
@@ -43,36 +69,43 @@ class CityNotFoundError(ValueError):
 
 def geocode_city(city: str) -> dict:
     """
-    Resolve a city name to coordinates via the Open-Meteo Geocoding API.
-
-    Parameters
-    ----------
-    city : str
-        Human-readable city name (e.g. "Mumbai", "Delhi").
-
-    Returns
-    -------
-    dict with keys: name, latitude, longitude, country, timezone
-
-    Raises
-    ------
-    CityNotFoundError
-        If the city cannot be resolved to coordinates.
-    requests.RequestException
-        On network failures.
+    Resolve a city name to coordinates via fast cache or Open-Meteo Geocoding API.
     """
+    normalized = city.strip().lower()
+
+    # Fast-path check for well-known cities
+    if normalized in _KNOWN_CITIES:
+        logger.debug("Resolved '%s' via known cities cache", city)
+        return dict(_KNOWN_CITIES[normalized])
+
     params = {
         "name":     city.strip(),
         "count":    1,
         "language": "en",
         "format":   "json",
     }
-    logger.debug("Geocoding city: %s", city)
-    resp = requests.get(GEOCODING_URL, params=params, timeout=_REQUEST_TIMEOUT)
-    resp.raise_for_status()
-    data = resp.json()
+    logger.debug("Geocoding city via Open-Meteo: %s", city)
+    try:
+        resp = requests.get(
+            GEOCODING_URL,
+            params=params,
+            headers=_HEADERS,
+            timeout=_REQUEST_TIMEOUT,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+    except requests.RequestException as exc:
+        # Fallback check before raising
+        if normalized in _KNOWN_CITIES:
+            return dict(_KNOWN_CITIES[normalized])
+        logger.warning("Geocoding API network error: %s", exc)
+        raise
 
-    results = data.get("results")
+    if isinstance(data, dict) and data.get("error"):
+        reason = data.get("reason", "Unknown API error")
+        raise requests.RequestException(f"Geocoding service error: {reason}")
+
+    results = data.get("results") if isinstance(data, dict) else None
     if not results:
         raise CityNotFoundError(
             f"City '{city}' not found. "
@@ -117,7 +150,12 @@ def fetch_forecast(
     logger.debug(
         "Fetching forecast for (%.4f, %.4f)", latitude, longitude
     )
-    resp = requests.get(FORECAST_URL, params=params, timeout=_REQUEST_TIMEOUT)
+    resp = requests.get(
+        FORECAST_URL,
+        params=params,
+        headers=_HEADERS,
+        timeout=_REQUEST_TIMEOUT,
+    )
     resp.raise_for_status()
     payload = resp.json()
 
