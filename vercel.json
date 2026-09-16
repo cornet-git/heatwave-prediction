@@ -1,33 +1,22 @@
 {
-  "functions": {
-    "api/index.py": {
-      "includeFiles": "{models/**,src/**}"
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python",
+      "config": {
+        "includeFiles": [
+          "models/**",
+          "index.html",
+          "src/**"
+        ]
+      }
     }
-  },
-  "rewrites": [
+  ],
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/current-weather/:city*",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/predict",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/health",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/docs",
-      "destination": "/api/index.py"
-    },
-    {
-      "source": "/openapi.json",
-      "destination": "/api/index.py"
+      "src": "/(.*)",
+      "dest": "api/index.py"
     }
   ]
 }
